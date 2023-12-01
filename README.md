@@ -17,9 +17,9 @@ Options:<br>
 \-h: prints help message<br>
 \-j: output as JSON<br>
 \-v: verbose output (shows all hops)<br>
-\-w int, width of URL tab:
+\-w: int, width of URL tab
 
 Defaults:<br>
-\-j: Off
-\-v: Off (Final/Clean URL only)
+\-j: Off<br>
+\-v: Off (Final/Clean URL only)<br>
 \-w: 120
