@@ -454,6 +454,21 @@ func main() {
 	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
 	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
 
+	// Load configuration from file, if exists
+	config, err := loadConfig()
+	if err != nil {
+		fmt.Printf("Error loading configuration: %s\n", err)
+		os.Exit(1)
+	}
+
+	// Set flag values based on config, or use default values if config is nil
+	if config != nil {
+		flagOutputJSON = config.UseJSON
+		flagTerse = config.AlwaysTerse
+		flagVerbose = config.AlwaysVerbose
+		flagWidth = config.Width
+	}
+
 	flag.Parse()
 	args := flag.Args()
 
@@ -476,21 +491,6 @@ func main() {
 	if flagHelp {
 		printUsageMessage()
 		os.Exit(0)
-	}
-
-	// Load configuration from file, if exists
-	config, err := loadConfig()
-	if err != nil {
-		fmt.Printf("Error loading configuration: %s\n", err)
-		os.Exit(1)
-	}
-
-	// Set flag values based on config, or use default values if config is nil
-	if config != nil {
-		flagOutputJSON = config.UseJSON
-		flagTerse = config.AlwaysTerse
-		flagVerbose = config.AlwaysVerbose
-		flagWidth = config.Width
 	}
 
 	// Perform the trace
