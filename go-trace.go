@@ -21,6 +21,7 @@ var (
 	outputDividerWidth = 135
 	green              = "\033[32m"
 	boldBlue           = "\033[1;34m"
+	underline          = "\033[4m"
 	reset              = "\033[0m"
 )
 
@@ -40,7 +41,7 @@ type TraceResult struct {
 	CleanURL string `json:"cleanURL"`
 }
 
-// // Utility Functions
+// Utility Functions
 func ClearTerminal() {
 	switch runtime.GOOS {
 	case "darwin":
@@ -126,6 +127,11 @@ func outputAsJSON(traceResult TraceResult) error {
 	return nil
 }
 
+func printUsageMessage() {
+	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-j: outputs as JSON\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
+	os.Exit(0)
+}
+
 func printShortTraceResult(redirectURL string) {
 	// Print additional information
 	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
@@ -173,7 +179,7 @@ func runCmd(name string, arg ...string) {
 	cmd.Run()
 }
 
-//// Tracer Functions
+// Tracer Functions
 
 func doTimeout() {
 	fmt.Println("Timeout error")
@@ -365,18 +371,22 @@ func main() {
 	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
 	flag.BoolVar(&flagOutputJSON, "j", false, "Output results as JSON")
 	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
-	flag.Parse()
 
+	flag.Parse()
 	args := flag.Args()
 
 	// Check if there are additional arguments after the URL
 	if len(args) < 1 {
-		fmt.Printf("Usage: go-trace [-v] [-j output as JSON] [-w width of the URL tab] <URL>")
-		os.Exit(0)
+		printUsageMessage()
 	}
 
 	// Get the URL from the command-line arguments
 	url := args[0]
+
+	// Check if there are flags after the URL
+	if len(args) > 1 {
+		printUsageMessage()
+	}
 
 	// Perform the trace
 	redirectURL, hops, cloudflareStatus, err := followRedirects(url)
