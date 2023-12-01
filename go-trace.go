@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,14 +16,39 @@ import (
 )
 
 var (
-	client = createHTTPClient()
+	client             = createHTTPClient()
+	outputWidth        = 120
+	outputDividerWidth = 135
+	green              = "\033[32m"
+	boldBlue           = "\033[1;34m"
+	reset              = "\033[0m"
 )
 
 type Hop struct {
-	Number          int
-	URL             string
-	StatusCode      int
-	StatusCodeClass string
+	Number     int
+	URL        string
+	StatusCode int
+}
+
+type OutputPath struct {
+	Path string
+}
+
+type TraceResult struct {
+	Hops     []Hop  `json:"hops"`
+	FinalURL string `json:"finalURL"`
+	CleanURL string `json:"cleanURL"`
+}
+
+// String implements the Stringer interface for OutputPath
+func (o *OutputPath) String() string {
+	return o.Path
+}
+
+// Set implements the flag.Value interface for OutputPath
+func (o *OutputPath) Set(value string) error {
+	o.Path = value
+	return nil
 }
 
 func createHTTPClient() *http.Client {
@@ -89,10 +116,9 @@ func followRedirects(urlStr string) (string, []Hop, bool, error) {
 		if visitedURLs[urlStr] > 1 {
 			// Redirect loop detected
 			hops = append(hops, Hop{
-				Number:          number,
-				URL:             urlStr,
-				StatusCode:      http.StatusLoopDetected,
-				StatusCodeClass: getStatusCodeClass(http.StatusLoopDetected),
+				Number:     number,
+				URL:        urlStr,
+				StatusCode: http.StatusLoopDetected,
 			})
 			return urlStr, hops, cloudflareStatus, nil
 		} else {
@@ -137,7 +163,6 @@ func followRedirects(urlStr string) (string, []Hop, bool, error) {
 			URL:        urlStr,
 			StatusCode: resp.StatusCode,
 		}
-		hop.StatusCodeClass = getStatusCodeClass(resp.StatusCode)
 		hops = append(hops, hop)
 
 		if resp.StatusCode >= 300 && resp.StatusCode <= 399 {
@@ -155,7 +180,6 @@ func followRedirects(urlStr string) (string, []Hop, bool, error) {
 					URL:        location,
 					StatusCode: http.StatusOK, // Set the status code to 200 for the final request
 				}
-				finalHop.StatusCodeClass = getStatusCodeClass(http.StatusOK)
 				hops = append(hops, finalHop)
 
 				return location, hops, cloudflareStatus, nil
@@ -211,21 +235,6 @@ func followRedirects(urlStr string) (string, []Hop, bool, error) {
 	}
 }
 
-func getStatusCodeClass(statusCode int) string {
-	switch {
-	case statusCode >= 200 && statusCode < 300:
-		return "2xx"
-	case statusCode >= 300 && statusCode < 400:
-		return "3xx"
-	case statusCode >= 400 && statusCode < 500:
-		return "4xx"
-	case statusCode >= 500 && statusCode < 600:
-		return "5xx"
-	default:
-		return ""
-	}
-}
-
 func handleRelativeRedirect(previousURL *url.URL, location string, requestURL *url.URL) (*url.URL, error) {
 	redirectURL, err := url.Parse(location)
 	if err != nil {
@@ -260,12 +269,21 @@ func handleRelativeRedirect(previousURL *url.URL, location string, requestURL *u
 
 func main() {
 	// Parse command-line arguments
-	args := os.Args[1:]
+	var flagVerbose bool
+	var flagWidth int
+	var flagOutputPath OutputPath
 
-	// Check if there is exactly one argument (the URL)
-	if len(args) != 1 {
-		fmt.Println("Usage: go-trace <URL>")
-		os.Exit(1)
+	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
+	flag.Var(&flagOutputPath, "o", "Path for the JSON output file")
+	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
+	flag.Parse()
+
+	args := flag.Args()
+
+	// Check if there are additional arguments after the URL
+	if len(args) < 1 {
+		fmt.Printf("Usage: go-trace [-v] [-o outputPath] [-w width of the URL tab] <URL>")
+		os.Exit(0)
 	}
 
 	// Get the URL from the command-line arguments
@@ -278,20 +296,53 @@ func main() {
 		os.Exit(1)
 	}
 
+	traceResult := TraceResult{
+		Hops:     hops,
+		FinalURL: redirectURL,
+		CleanURL: makeCleanURL(redirectURL),
+	}
+
+	// Change URL tab width, if required.
+	if flagWidth != 120 {
+		outputWidth = flagWidth
+		outputDividerWidth = flagWidth + 15
+	}
+
+	// Save to JSON if requested
+	if flagOutputPath.Path != "" {
+		SaveTraceResultToFile(flagOutputPath.Path, traceResult)
+	}
+
 	// Print the trace result in tabular format
-	printTraceResult(redirectURL, hops, cloudflareStatus)
+	if flagVerbose {
+		printVerboseTraceResult(redirectURL, hops, cloudflareStatus)
+	} else {
+		printShortTraceResult(redirectURL)
+	}
 }
 
-func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
-	// ANSI escape codes for bold and blue text
-	boldBlue := "\033[1;34m"
-	reset := "\033[0m"
+func printShortTraceResult(redirectURL string) {
+	// Clear the screen
+	ClearTerminal()
 
+	// Print additional information
+	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
+
+	cleanedURL := makeCleanURL(redirectURL)
+
+	if cleanedURL != redirectURL {
+		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
+	}
+
+	fmt.Printf("\n")
+}
+
+func printVerboseTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
 	// Clear the screen
 	ClearTerminal()
 
 	fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
-	fmt.Println(strings.Repeat("-", 95))
+	fmt.Println(strings.Repeat("-", outputDividerWidth))
 
 	// Print each hop
 	for _, hop := range hops {
@@ -301,27 +352,26 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
 			hop.Number,
 			hop.StatusCode,
 			formatURL(hop.URL),
-			strings.Repeat("-", 95),
+			strings.Repeat("-", outputDividerWidth),
 		)
 	}
 
 	// Print additional information
 	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
-	// Split the URL based on the "?" character
-	parts := strings.Split(redirectURL, "?")
 
-	if len(parts) > 1 {
-		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", boldBlue, reset, parts[0])
+	cleanedURL := makeCleanURL(redirectURL)
+
+	if cleanedURL != redirectURL {
+		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
 	}
 
-	fmt.Println(strings.Repeat("-", 95))
-
+	fmt.Println(strings.Repeat("-", outputDividerWidth))
 }
 
 // formatURL formats the URL for better presentation
 func formatURL(url string) string {
 	// Limit the width of each column
-	const maxLineLength = 80
+	var maxLineLength = outputWidth
 
 	if len(url) <= maxLineLength {
 		return url
@@ -346,4 +396,30 @@ func formatURL(url string) string {
 	}
 
 	return formattedURL.String()
+}
+
+// Try to make a clean URL
+func makeCleanURL(url string) string {
+	// Split the URL based on the "?" character
+	parts := strings.Split(url, "?")
+
+	if len(parts) > 1 {
+		return parts[0]
+	} else {
+		return url
+	}
+}
+
+// SaveTraceResultToFile saves the trace result to a JSON file
+func SaveTraceResultToFile(filename string, traceResult TraceResult) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ") // Add indentation for better readability
+	err = encoder.Encode(traceResult)
+	return err
 }

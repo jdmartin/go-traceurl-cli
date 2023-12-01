@@ -1,3 +1,1 @@
-- Add option for custom output width (couple with upping default from 80)
-- Maybe provide option to store output as json?
 - Better parameter filtering (borrow from go-traceurl)
