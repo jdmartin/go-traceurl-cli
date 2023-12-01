@@ -25,7 +25,7 @@ Defaults:<br>
 \-v: Off (Final/Clean URL only)<br>
 \-w: 120
 
-Global Config:<br>
+### Global Config:<br>
 
 The program does support a config file. It will look in [$XDG_CONFIG_HOME](https://xdgbasedirectoryspecification.com/) to find go-trace.toml, or else it will check ~/.config/go-trace.toml.  You can use this file to create global defaults (maybe you always want JSON, or maybe you always want terse/verbose output, or maybe you want the width to be 80 chars like ~~God~~ IBM intended)
 
