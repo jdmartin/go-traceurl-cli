@@ -10,9 +10,13 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"os/user"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/pelletier/go-toml"
 )
 
 var (
@@ -24,6 +28,14 @@ var (
 	underline          = "\033[4m"
 	reset              = "\033[0m"
 )
+
+// Config struct to hold configuration values
+type Config struct {
+	UseJSON       bool `toml:"use_json"`
+	AlwaysTerse   bool `toml:"always_terse"`
+	AlwaysVerbose bool `toml:"always_verbose"`
+	Width         int  `toml:"width"`
+}
 
 type Hop struct {
 	Number     int
@@ -99,6 +111,60 @@ func formatURL(url string) string {
 	}
 
 	return formattedURL.String()
+}
+
+// loadConfig reads the configuration file and returns a Config struct
+// If the file doesn't exist or some values are missing, default values are used
+func loadConfig() (*Config, error) {
+	// Check if XDG_CONFIG_HOME is set
+	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
+	var configDir string
+
+	if xdgConfigHome != "" {
+		configDir = xdgConfigHome
+	} else {
+		// Get user's home directory
+		usr, err := user.Current()
+		if err != nil {
+			return nil, err
+		}
+		configDir = filepath.Join(usr.HomeDir, ".config")
+	}
+
+	// Define config file path in the selected directory
+	configFilePath := filepath.Join(configDir, "go-trace.toml")
+
+	// Read the config file
+	file, err := os.ReadFile(configFilePath)
+	if os.IsNotExist(err) {
+		// go-trace.toml does not exist, return nil config (no error)
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	// Unmarshal TOML content into Config struct
+	var config Config
+	err = toml.Unmarshal(file, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set default values if not present
+	if config.UseJSON == false {
+		config.UseJSON = false // Set the default value
+	}
+	if config.AlwaysTerse == false {
+		config.AlwaysTerse = false // Set the default value
+	}
+	if config.AlwaysVerbose == false {
+		config.AlwaysVerbose = false // Set the default value
+	}
+	if config.Width == 0 {
+		config.Width = 120 // Set the default value
+	}
+
+	return &config, nil
 }
 
 // Try to make a clean URL
@@ -410,6 +476,21 @@ func main() {
 	if flagHelp {
 		printUsageMessage()
 		os.Exit(0)
+	}
+
+	// Load configuration from file, if exists
+	config, err := loadConfig()
+	if err != nil {
+		fmt.Printf("Error loading configuration: %s\n", err)
+		os.Exit(1)
+	}
+
+	// Set flag values based on config, or use default values if config is nil
+	if config != nil {
+		flagOutputJSON = config.UseJSON
+		flagTerse = config.AlwaysTerse
+		flagVerbose = config.AlwaysVerbose
+		flagWidth = config.Width
 	}
 
 	// Perform the trace
