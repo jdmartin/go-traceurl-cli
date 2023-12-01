@@ -8,7 +8,7 @@ Implements the URL tracing (and partial cleaning, more work to do there) of my [
 ### Build
 I build it like this on my Apple Silicon Mac. You'll want to change the GOOS and GOARCH to match your needs.
 
-`env GOOS=darwin GOARCH=arm64 go build -o go-trace -ldflags="-w -s" -gcflags "all=-N -l" -tags netgo .`
+`env GOOS=darwin GOARCH=arm64 go build -o go-trace -ldflags="-w -s" -tags netgo .`
 
 ### Usage
 go-trace [options] URL
