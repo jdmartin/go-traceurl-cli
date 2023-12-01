@@ -40,15 +40,18 @@ type TraceResult struct {
 	CleanURL string `json:"cleanURL"`
 }
 
-// String implements the Stringer interface for OutputPath
-func (o *OutputPath) String() string {
-	return o.Path
-}
-
-// Set implements the flag.Value interface for OutputPath
-func (o *OutputPath) Set(value string) error {
-	o.Path = value
-	return nil
+// // Utility Functions
+func ClearTerminal() {
+	switch runtime.GOOS {
+	case "darwin":
+		runCmd("clear")
+	case "linux":
+		runCmd("clear")
+	case "windows":
+		runCmd("cmd", "/c", "cls")
+	default:
+		runCmd("clear")
+	}
 }
 
 func createHTTPClient() *http.Client {
@@ -67,24 +70,110 @@ func createHTTPClient() *http.Client {
 	}
 }
 
+// formatURL formats the URL for better presentation
+func formatURL(url string) string {
+	// Limit the width of each column
+	var maxLineLength = outputWidth
+
+	if len(url) <= maxLineLength {
+		return url
+	}
+
+	var formattedURL strings.Builder
+
+	lineStart := 0
+	for i := 0; i < len(url); i += maxLineLength {
+		end := i + maxLineLength
+		if end > len(url) {
+			end = len(url)
+		}
+
+		if i > 0 {
+			// Insert additional indentation for the URL continuation
+			formattedURL.WriteString("\n" + strings.Repeat(" ", 15))
+		}
+
+		formattedURL.WriteString(url[lineStart:end])
+		lineStart = end
+	}
+
+	return formattedURL.String()
+}
+
+// Try to make a clean URL
+func makeCleanURL(url string) string {
+	// Split the URL based on the "?" character
+	parts := strings.Split(url, "?")
+
+	if len(parts) > 1 {
+		return parts[0]
+	} else {
+		return url
+	}
+}
+
+// Output as JSON
+func outputAsJSON(traceResult TraceResult) error {
+	// Marshal the TraceResult struct into a formatted JSON string
+	jsonString, err := json.MarshalIndent(traceResult, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	// Print the JSON string
+	fmt.Println(string(jsonString))
+
+	return nil
+}
+
+func printShortTraceResult(redirectURL string) {
+	// Print additional information
+	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
+
+	cleanedURL := makeCleanURL(redirectURL)
+
+	if cleanedURL != redirectURL {
+		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
+	}
+
+	fmt.Printf("\n")
+}
+
+func printVerboseTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
+	fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
+	fmt.Println(strings.Repeat("-", outputDividerWidth))
+
+	// Print each hop
+	for _, hop := range hops {
+		fmt.Fprintf(
+			os.Stdout,
+			"%-3d | %-6d | %s\n%s\n",
+			hop.Number,
+			hop.StatusCode,
+			formatURL(hop.URL),
+			strings.Repeat("-", outputDividerWidth),
+		)
+	}
+
+	// Print additional information
+	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
+
+	cleanedURL := makeCleanURL(redirectURL)
+
+	if cleanedURL != redirectURL {
+		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
+	}
+
+	fmt.Println(strings.Repeat("-", outputDividerWidth))
+}
+
 func runCmd(name string, arg ...string) {
 	cmd := exec.Command(name, arg...)
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 }
 
-func ClearTerminal() {
-	switch runtime.GOOS {
-	case "darwin":
-		runCmd("clear")
-	case "linux":
-		runCmd("clear")
-	case "windows":
-		runCmd("cmd", "/c", "cls")
-	default:
-		runCmd("clear")
-	}
-}
+//// Tracer Functions
 
 func doTimeout() {
 	fmt.Println("Timeout error")
@@ -323,101 +412,4 @@ func main() {
 	} else {
 		printShortTraceResult(redirectURL)
 	}
-}
-
-func printShortTraceResult(redirectURL string) {
-	// Print additional information
-	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
-
-	cleanedURL := makeCleanURL(redirectURL)
-
-	if cleanedURL != redirectURL {
-		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
-	}
-
-	fmt.Printf("\n")
-}
-
-func printVerboseTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
-	fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
-	fmt.Println(strings.Repeat("-", outputDividerWidth))
-
-	// Print each hop
-	for _, hop := range hops {
-		fmt.Fprintf(
-			os.Stdout,
-			"%-3d | %-6d | %s\n%s\n",
-			hop.Number,
-			hop.StatusCode,
-			formatURL(hop.URL),
-			strings.Repeat("-", outputDividerWidth),
-		)
-	}
-
-	// Print additional information
-	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
-
-	cleanedURL := makeCleanURL(redirectURL)
-
-	if cleanedURL != redirectURL {
-		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
-	}
-
-	fmt.Println(strings.Repeat("-", outputDividerWidth))
-}
-
-// formatURL formats the URL for better presentation
-func formatURL(url string) string {
-	// Limit the width of each column
-	var maxLineLength = outputWidth
-
-	if len(url) <= maxLineLength {
-		return url
-	}
-
-	var formattedURL strings.Builder
-
-	lineStart := 0
-	for i := 0; i < len(url); i += maxLineLength {
-		end := i + maxLineLength
-		if end > len(url) {
-			end = len(url)
-		}
-
-		if i > 0 {
-			// Insert additional indentation for the URL continuation
-			formattedURL.WriteString("\n" + strings.Repeat(" ", 15))
-		}
-
-		formattedURL.WriteString(url[lineStart:end])
-		lineStart = end
-	}
-
-	return formattedURL.String()
-}
-
-// Try to make a clean URL
-func makeCleanURL(url string) string {
-	// Split the URL based on the "?" character
-	parts := strings.Split(url, "?")
-
-	if len(parts) > 1 {
-		return parts[0]
-	} else {
-		return url
-	}
-}
-
-// Output as JSON
-func outputAsJSON(traceResult TraceResult) error {
-	// Marshal the TraceResult struct into a formatted JSON string
-	jsonString, err := json.MarshalIndent(traceResult, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	// Print the JSON string
-	fmt.Println(string(jsonString))
-
-	return nil
 }
