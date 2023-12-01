@@ -128,8 +128,7 @@ func outputAsJSON(traceResult TraceResult) error {
 }
 
 func printUsageMessage() {
-	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-j: outputs as JSON\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
-	os.Exit(1)
+	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-h: prints this help message\n\t-j: outputs as JSON\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
 }
 
 func printShortTraceResult(redirectURL string) {
@@ -364,12 +363,17 @@ func handleRelativeRedirect(previousURL *url.URL, location string, requestURL *u
 
 func main() {
 	// Parse command-line arguments
-	var flagVerbose bool
-	var flagWidth int
-	var flagOutputJSON bool
+	var (
+		flagHelp       bool
+		flagOutputJSON bool
+		flagVerbose    bool
+		flagWidth      int
+	)
 
-	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
+	flag.BoolVar(&flagHelp, "h", false, "Show help message")
+	flag.BoolVar(&flagHelp, "help", false, "Show help message")
 	flag.BoolVar(&flagOutputJSON, "j", false, "Output results as JSON")
+	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
 	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
 
 	flag.Parse()
@@ -378,6 +382,7 @@ func main() {
 	// Check if there are additional arguments after the URL
 	if len(args) < 1 {
 		printUsageMessage()
+		os.Exit(1)
 	}
 
 	// Get the URL from the command-line arguments
@@ -386,6 +391,13 @@ func main() {
 	// Check if there are flags after the URL
 	if len(args) > 1 {
 		printUsageMessage()
+		os.Exit(1)
+	}
+
+	// If help requested, print message and exit
+	if flagHelp {
+		printUsageMessage()
+		os.Exit(0)
 	}
 
 	// Perform the trace
