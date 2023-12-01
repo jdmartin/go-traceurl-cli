@@ -1,0 +1,4 @@
+use_json = true
+always_terse = false
+always_verbose = false
+width = 120
