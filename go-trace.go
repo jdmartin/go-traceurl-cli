@@ -129,7 +129,7 @@ func outputAsJSON(traceResult TraceResult) error {
 
 func printUsageMessage() {
 	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-j: outputs as JSON\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
-	os.Exit(0)
+	os.Exit(1)
 }
 
 func printShortTraceResult(redirectURL string) {
@@ -413,7 +413,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Clear the screen
+	// Clear the screen before printing results
 	ClearTerminal()
 
 	// Print the trace result in tabular format
