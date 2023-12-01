@@ -271,10 +271,10 @@ func main() {
 	// Parse command-line arguments
 	var flagVerbose bool
 	var flagWidth int
-	var flagOutputPath OutputPath
+	var flagOutputJSON bool
 
 	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
-	flag.Var(&flagOutputPath, "o", "Path for the JSON output file")
+	flag.BoolVar(&flagOutputJSON, "j", false, "Output results as JSON")
 	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
 	flag.Parse()
 
@@ -282,7 +282,7 @@ func main() {
 
 	// Check if there are additional arguments after the URL
 	if len(args) < 1 {
-		fmt.Printf("Usage: go-trace [-v] [-o outputPath] [-w width of the URL tab] <URL>")
+		fmt.Printf("Usage: go-trace [-v] [-j output as JSON] [-w width of the URL tab] <URL>")
 		os.Exit(0)
 	}
 
@@ -309,9 +309,13 @@ func main() {
 	}
 
 	// Save to JSON if requested
-	if flagOutputPath.Path != "" {
-		SaveTraceResultToFile(flagOutputPath.Path, traceResult)
+	if flagOutputJSON {
+		outputAsJSON(traceResult)
+		os.Exit(0)
 	}
+
+	// Clear the screen
+	ClearTerminal()
 
 	// Print the trace result in tabular format
 	if flagVerbose {
@@ -322,9 +326,6 @@ func main() {
 }
 
 func printShortTraceResult(redirectURL string) {
-	// Clear the screen
-	ClearTerminal()
-
 	// Print additional information
 	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
 
@@ -338,9 +339,6 @@ func printShortTraceResult(redirectURL string) {
 }
 
 func printVerboseTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
-	// Clear the screen
-	ClearTerminal()
-
 	fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
 	fmt.Println(strings.Repeat("-", outputDividerWidth))
 
@@ -410,16 +408,16 @@ func makeCleanURL(url string) string {
 	}
 }
 
-// SaveTraceResultToFile saves the trace result to a JSON file
-func SaveTraceResultToFile(filename string, traceResult TraceResult) error {
-	file, err := os.Create(filename)
+// Output as JSON
+func outputAsJSON(traceResult TraceResult) error {
+	// Marshal the TraceResult struct into a formatted JSON string
+	jsonString, err := json.MarshalIndent(traceResult, "", "  ")
 	if err != nil {
 		return err
 	}
-	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	encoder.SetIndent("", "  ") // Add indentation for better readability
-	err = encoder.Encode(traceResult)
-	return err
+	// Print the JSON string
+	fmt.Println(string(jsonString))
+
+	return nil
 }
