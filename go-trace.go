@@ -144,6 +144,16 @@ func printShortTraceResult(redirectURL string) {
 	fmt.Printf("\n")
 }
 
+func printTerseTraceResult(redirectURL string) {
+	cleanedURL := makeCleanURL(redirectURL)
+
+	if cleanedURL != redirectURL {
+		fmt.Println(cleanedURL)
+	} else {
+		fmt.Println(redirectURL)
+	}
+}
+
 func printVerboseTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
 	fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
 	fmt.Println(strings.Repeat("-", outputDividerWidth))
@@ -366,6 +376,7 @@ func main() {
 	var (
 		flagHelp       bool
 		flagOutputJSON bool
+		flagTerse      bool
 		flagVerbose    bool
 		flagWidth      int
 	)
@@ -373,6 +384,7 @@ func main() {
 	flag.BoolVar(&flagHelp, "h", false, "Show help message")
 	flag.BoolVar(&flagHelp, "help", false, "Show help message")
 	flag.BoolVar(&flagOutputJSON, "j", false, "Output results as JSON")
+	flag.BoolVar(&flagTerse, "s", false, "Output only the final/clean url")
 	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
 	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
 
@@ -428,8 +440,11 @@ func main() {
 	// Clear the screen before printing results
 	ClearTerminal()
 
-	// Print the trace result in tabular format
-	if flagVerbose {
+	// Print the trace result in terse or tabular format
+	if flagTerse {
+		printTerseTraceResult(redirectURL)
+		os.Exit(0)
+	} else if flagVerbose {
 		printVerboseTraceResult(redirectURL, hops, cloudflareStatus)
 	} else {
 		printShortTraceResult(redirectURL)

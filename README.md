@@ -16,6 +16,7 @@ go-trace [options] URL
 Options:<br>
 \-h: prints help message<br>
 \-j: output as JSON<br>
+\-s: short output. Just the Final/Clean URL<br>
 \-v: verbose output (shows all hops)<br>
 \-w: int, width of URL tab
 
