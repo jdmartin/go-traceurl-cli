@@ -55,15 +55,14 @@ type TraceResult struct {
 
 // Utility Functions
 func ClearTerminal() {
-	switch runtime.GOOS {
-	case "darwin":
-		runCmd("clear")
-	case "linux":
-		runCmd("clear")
-	case "windows":
-		runCmd("cmd", "/c", "cls")
-	default:
-		runCmd("clear")
+	// For Unix-like systems, use ANSI escape codes
+	fmt.Print("\033[2J\033[H")
+
+	// For Windows, use the "cls" command
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/c", "cls")
+		cmd.Stdout = os.Stdout
+		cmd.Run()
 	}
 }
 
@@ -247,12 +246,6 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 		fmt.Println(strings.Repeat("-", outputDividerWidth))
 	}
 
-}
-
-func runCmd(name string, arg ...string) {
-	cmd := exec.Command(name, arg...)
-	cmd.Stdout = os.Stdout
-	cmd.Run()
 }
 
 // Tracer Functions
