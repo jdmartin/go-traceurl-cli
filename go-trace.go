@@ -197,55 +197,56 @@ func printUsageMessage() {
 	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-h: prints this help message\n\t-j: outputs as JSON\n\t-s: prints only the final/clean URL\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
 }
 
-func printShortTraceResult(redirectURL string) {
-	// Print additional information
-	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
-
+func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, viewOption string) {
 	cleanedURL := makeCleanURL(redirectURL)
 
-	if cleanedURL != redirectURL {
-		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
+	if cloudflareStatus {
+		fmt.Fprintf(os.Stdout, "\n%sFinal URL%s: Cloudflare protection prevents tracing. Sorry!\n", boldBlue, reset)
+		os.Exit(0)
 	}
 
-	fmt.Printf("\n")
-}
+	switch {
+	case viewOption == "terse":
+		if cleanedURL != redirectURL {
+			fmt.Println(cleanedURL)
+		} else {
+			fmt.Println(redirectURL)
+		}
 
-func printTerseTraceResult(redirectURL string) {
-	cleanedURL := makeCleanURL(redirectURL)
+	case viewOption == "short":
+		// Print additional information
+		fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
 
-	if cleanedURL != redirectURL {
-		fmt.Println(cleanedURL)
-	} else {
-		fmt.Println(redirectURL)
+		if cleanedURL != redirectURL {
+			fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n\n", green, reset, cleanedURL)
+		}
+
+	case viewOption == "verbose":
+		fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
+		fmt.Println(strings.Repeat("-", outputDividerWidth))
+
+		// Print each hop
+		for _, hop := range hops {
+			fmt.Fprintf(
+				os.Stdout,
+				"%-3d | %-6d | %s\n%s\n",
+				hop.Number,
+				hop.StatusCode,
+				formatURL(hop.URL),
+				strings.Repeat("-", outputDividerWidth),
+			)
+		}
+
+		// Print additional information
+		fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
+
+		if cleanedURL != redirectURL {
+			fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
+		}
+
+		fmt.Println(strings.Repeat("-", outputDividerWidth))
 	}
-}
 
-func printVerboseTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool) {
-	fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
-	fmt.Println(strings.Repeat("-", outputDividerWidth))
-
-	// Print each hop
-	for _, hop := range hops {
-		fmt.Fprintf(
-			os.Stdout,
-			"%-3d | %-6d | %s\n%s\n",
-			hop.Number,
-			hop.StatusCode,
-			formatURL(hop.URL),
-			strings.Repeat("-", outputDividerWidth),
-		)
-	}
-
-	// Print additional information
-	fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
-
-	cleanedURL := makeCleanURL(redirectURL)
-
-	if cleanedURL != redirectURL {
-		fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
-	}
-
-	fmt.Println(strings.Repeat("-", outputDividerWidth))
 }
 
 func runCmd(name string, arg ...string) {
@@ -523,11 +524,11 @@ func main() {
 
 	// Print the trace result in terse or tabular format
 	if flagTerse {
-		printTerseTraceResult(redirectURL)
+		printTraceResult(redirectURL, nil, cloudflareStatus, "terse")
 		os.Exit(0)
 	} else if flagVerbose {
-		printVerboseTraceResult(redirectURL, hops, cloudflareStatus)
+		printTraceResult(redirectURL, hops, cloudflareStatus, "verbose")
 	} else {
-		printShortTraceResult(redirectURL)
+		printTraceResult(redirectURL, nil, cloudflareStatus, "short")
 	}
 }
