@@ -244,7 +244,7 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 			fmt.Fprintf(os.Stdout, "\n\t%sClean URL%s:     %s\n", green, reset, cleanedURL)
 		}
 
-		fmt.Printf("\t%s", strings.Repeat("-", outputDividerWidth))
+		fmt.Printf("\t%s\n", strings.Repeat("-", outputDividerWidth))
 	}
 
 }
