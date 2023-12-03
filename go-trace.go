@@ -23,8 +23,10 @@ var (
 	client             = createHTTPClient()
 	outputWidth        = 120
 	outputDividerWidth = 135
+	bold               = "\033[1m"
 	green              = "\033[32m"
 	boldBlue           = "\033[1;34m"
+	brightCyan         = "\033[38;5;14m"
 	underline          = "\033[4m"
 	reset              = "\033[0m"
 )
@@ -41,10 +43,6 @@ type Hop struct {
 	Number     int
 	URL        string
 	StatusCode int
-}
-
-type OutputPath struct {
-	Path string
 }
 
 type TraceResult struct {
@@ -84,25 +82,22 @@ func createHTTPClient() *http.Client {
 
 // formatURL formats the URL for better presentation
 func formatURL(url string) string {
-	// Limit the width of each column
-	var maxLineLength = outputWidth
-
-	if len(url) <= maxLineLength {
+	if len(url) <= outputWidth {
 		return url
 	}
 
 	var formattedURL strings.Builder
 
 	lineStart := 0
-	for i := 0; i < len(url); i += maxLineLength {
-		end := i + maxLineLength
+	for i := 0; i < len(url); i += outputWidth {
+		end := i + outputWidth
 		if end > len(url) {
 			end = len(url)
 		}
 
 		if i > 0 {
 			// Insert additional indentation for the URL continuation
-			formattedURL.WriteString("\n" + strings.Repeat(" ", 15))
+			formattedURL.WriteString("\n" + strings.Repeat(" ", 23))
 		}
 
 		formattedURL.WriteString(url[lineStart:end])
@@ -221,15 +216,21 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 		}
 
 	case viewOption == "verbose":
-		fmt.Printf("%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
-		fmt.Println(strings.Repeat("-", outputDividerWidth))
+		if len(redirectURL) <= outputWidth {
+			outputDividerWidth = len(redirectURL) + 15
+		}
+
+		fmt.Printf("\n\t%sHop%s | %sStatus%s | %sURL%s\n", boldBlue, reset, boldBlue, reset, boldBlue, reset)
+		fmt.Printf("\t%s", strings.Repeat("-", outputDividerWidth))
 
 		// Print each hop
 		for _, hop := range hops {
 			fmt.Fprintf(
 				os.Stdout,
-				"%-3d | %-6d | %s\n%s\n",
+				"\n\t%s%-3d%s | %-6d | %s\n\t%s\n",
+				brightCyan,
 				hop.Number,
+				reset,
 				hop.StatusCode,
 				formatURL(hop.URL),
 				strings.Repeat("-", outputDividerWidth),
@@ -237,13 +238,13 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 		}
 
 		// Print additional information
-		fmt.Fprintf(os.Stdout, "\n%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
+		fmt.Fprintf(os.Stdout, "\n\t%sFinal URL%s:     %s\n", boldBlue, reset, formatURL(redirectURL))
 
 		if cleanedURL != redirectURL {
-			fmt.Fprintf(os.Stdout, "\n%sClean URL%s:     %s\n", green, reset, cleanedURL)
+			fmt.Fprintf(os.Stdout, "\n\t%sClean URL%s:     %s\n", green, reset, cleanedURL)
 		}
 
-		fmt.Println(strings.Repeat("-", outputDividerWidth))
+		fmt.Printf("\t%s", strings.Repeat("-", outputDividerWidth))
 	}
 
 }
