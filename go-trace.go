@@ -513,16 +513,14 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Clear the screen before printing results
-	ClearTerminal()
-
 	// Print the trace result in terse or tabular format
 	if flagTerse {
 		printTraceResult(redirectURL, nil, cloudflareStatus, "terse")
-		os.Exit(0)
 	} else if flagVerbose {
+		ClearTerminal()
 		printTraceResult(redirectURL, hops, cloudflareStatus, "verbose")
 	} else {
+		ClearTerminal()
 		printTraceResult(redirectURL, nil, cloudflareStatus, "short")
 	}
 }
