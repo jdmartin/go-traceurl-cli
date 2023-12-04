@@ -252,12 +252,12 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 // Tracer Functions
 
 func doTimeout() {
-	fmt.Println("Timeout error")
+	fmt.Printf("\nThe request timed out. Sorry!\n")
 	os.Exit(1)
 }
 
 func doValidationError() {
-	fmt.Println("Validation error")
+	fmt.Printf("\nThere was a certification validation error. Sorry!\n")
 	os.Exit(1)
 }
 
