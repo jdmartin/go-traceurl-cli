@@ -19,16 +19,19 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
+const (
+	bold       = "\033[1m"
+	boldBlue   = "\033[1;34m"
+	brightCyan = "\033[38;5;14m"
+	green      = "\033[32m"
+	reset      = "\033[0m"
+	underline  = "\033[4m"
+)
+
 var (
 	client             = createHTTPClient()
 	outputWidth        = 120
 	outputDividerWidth = 135
-	bold               = "\033[1m"
-	green              = "\033[32m"
-	boldBlue           = "\033[1;34m"
-	brightCyan         = "\033[38;5;14m"
-	underline          = "\033[4m"
-	reset              = "\033[0m"
 )
 
 // Config struct to hold configuration values
@@ -263,7 +266,7 @@ func doValidationError() {
 
 func followRedirects(urlStr string) (string, []Hop, bool, error) {
 	// CF didn't break anything yet.
-	var cloudflareStatus bool // Defaults to false
+	cloudflareStatus := false // Defaults to false
 
 	hops := []Hop{}
 	number := 1
