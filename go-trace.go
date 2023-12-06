@@ -198,8 +198,7 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 	cleanedURL := makeCleanURL(redirectURL)
 
 	if cloudflareStatus {
-		fmt.Fprintf(os.Stdout, "\n%sFinal URL%s: Cloudflare protection prevents tracing. Sorry!\n", boldBlue, reset)
-		os.Exit(0)
+		doCloudFlareError()
 	}
 
 	switch {
@@ -254,14 +253,19 @@ func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, vie
 
 // Tracer Functions
 
+func doCloudFlareError() {
+	fmt.Println("\nCloudflare protection prevents tracing. Sorry!")
+	os.Exit(0)
+}
+
 func doTimeout() {
-	fmt.Printf("\nThe request timed out. Sorry!\n")
-	os.Exit(1)
+	fmt.Println("\nThe request timed out. Sorry!")
+	os.Exit(0)
 }
 
 func doValidationError() {
-	fmt.Printf("\nThere was a certification validation error. Sorry!\n")
-	os.Exit(1)
+	fmt.Println("\nThere was a certification validation error. Sorry!")
+	os.Exit(0)
 }
 
 func followRedirects(urlStr string) (string, []Hop, bool, error) {
