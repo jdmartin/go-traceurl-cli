@@ -258,6 +258,11 @@ func doCloudFlareError() {
 	os.Exit(0)
 }
 
+func doConnectionRefusedError() {
+	fmt.Println("\nThe connection was refused (possibly because of DNS). Sorry!")
+	os.Exit(0)
+}
+
 func doTimeout() {
 	fmt.Println("\nThe request timed out. Sorry!")
 	os.Exit(0)
@@ -307,6 +312,11 @@ func followRedirects(urlStr string) (string, []Hop, bool, error) {
 
 		resp, err := client.Do(req)
 		if err != nil {
+			if strings.Contains(err.Error(), "connection refused") {
+				doConnectionRefusedError()
+				return "", nil, cloudflareStatus, nil
+			}
+
 			if err, ok := err.(*url.Error); ok && err.Timeout() {
 				doTimeout()
 				return "", nil, cloudflareStatus, nil
