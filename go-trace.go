@@ -148,13 +148,13 @@ func loadConfig() (*Config, error) {
 	}
 
 	// Set default values if not present
-	if config.UseJSON == false {
+	if !config.UseJSON {
 		config.UseJSON = false // Set the default value
 	}
-	if config.AlwaysTerse == false {
+	if !config.AlwaysTerse {
 		config.AlwaysTerse = false // Set the default value
 	}
-	if config.AlwaysVerbose == false {
+	if !config.AlwaysVerbose {
 		config.AlwaysVerbose = false // Set the default value
 	}
 	if config.Width == 0 {
