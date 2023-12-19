@@ -1,6 +1,6 @@
 # go-traceurl-cli
 
-Implements the URL tracing (and partial cleaning, more work to do there) of my [go-traceurl](https://github.com/jdmartin/go-traceurl) tool, but on the cli.
+Implements the URL tracing (and partial cleaning) of my [go-traceurl](https://github.com/jdmartin/go-traceurl) tool, but on the cli.
 
 
 (N.B. I'm the world's okayest Go programmer (just learning). There are better tools in the world for this, probably.)
