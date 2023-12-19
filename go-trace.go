@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-    "github.com/pelletier/go-toml/v2"
+	"github.com/pelletier/go-toml/v2"
 )
 
 const (
@@ -166,14 +166,104 @@ func loadConfig() (*Config, error) {
 
 // Try to make a clean URL
 func makeCleanURL(url string) string {
-	// Split the URL based on the "?" character
-	parts := strings.Split(url, "?")
+	return extractParameters(url)
+}
 
-	if len(parts) > 1 {
-		return parts[0]
-	} else {
-		return url
+func extractParameters(inputURL string) string {
+	var goodParams string
+	var additionalText string
+
+	// Parse the URL
+	parsedURL, err := url.Parse(inputURL)
+	if err != nil {
+		fmt.Println("Error parsing URL:", err)
+		return ""
 	}
+
+	// Add scheme and host
+	additionalText += parsedURL.Scheme + "://" + parsedURL.Host
+
+	// Add a trailing slash if there's a non-empty path
+	if parsedURL.Path != "" {
+		additionalText += "/"
+	}
+
+	// Extract query parameters
+	queryParams := parsedURL.Query()
+
+	// Iterate over the query parameters
+	for key, values := range queryParams {
+		if filterTheParams(key) {
+			// Add only good parameters and their values
+			for _, value := range values {
+				goodParams += "&" + key + "=" + value
+			}
+		}
+	}
+
+	// Add path segments
+	pathSegments := strings.Split(parsedURL.Path, "/")
+	for _, segment := range pathSegments {
+		if segment != "" && !strings.HasPrefix(segment, "#") {
+			// Check if the path already ends with a slash
+			if !strings.HasSuffix(additionalText, "/") {
+				additionalText += "/"
+			}
+			additionalText += segment
+		}
+	}
+
+	// Add query parameters if present
+	if len(goodParams) > 1 {
+		additionalText += "?" + goodParams[1:]
+	}
+
+	// Add anchor if present
+	if parsedURL.Fragment != "" {
+		additionalText += "#" + parsedURL.Fragment
+	}
+
+	return additionalText
+}
+
+func filterTheParams(param string) bool {
+	// List of known bad parts to discard
+	badParts := []string{
+		"_kx",
+		"bbeml",
+		"cid",
+		"ck_subscriber_id",
+		"cmpid",
+		"dm_i",
+		"dm_t",
+		"ea.tracking.id",
+		"EMLCID",
+		"EMLDTL",
+		"fbclid",
+		"gbraid",
+		"gclid",
+		"linkID",
+		"mailId",
+		"msclkid",
+		"mc_cid",
+		"mcID",
+		"mc_eid",
+		"mgparam",
+		"rfrr",
+		"ser",
+		"snr",
+		"wbraid",
+	}
+
+	isBadPart := false
+	for _, part := range badParts {
+		if part == param || strings.HasPrefix(param, "cm_") || strings.HasPrefix(param, "pk_") || strings.HasPrefix(param, "utm_") {
+			isBadPart = true
+			break
+		}
+	}
+
+	return !isBadPart
 }
 
 // Output as JSON
