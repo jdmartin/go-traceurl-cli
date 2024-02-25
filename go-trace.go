@@ -118,14 +118,14 @@ func loadConfig() (*Config, error) {
 	var configDir string
 
 	if xdgConfigHome != "" {
-		configDir = xdgConfigHome
+		configDir = filepath.Join(xdgConfigHome, "go-trace")
 	} else {
 		// Get user's home directory
 		usr, err := user.Current()
 		if err != nil {
 			return nil, err
 		}
-		configDir = filepath.Join(usr.HomeDir, ".config")
+		configDir = filepath.Join(usr.HomeDir, ".config", "go-trace")
 	}
 
 	// Define config file path in the selected directory
