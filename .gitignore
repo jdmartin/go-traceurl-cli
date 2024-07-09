@@ -20,5 +20,6 @@
 # Go workspace file
 go.work
 
-# Personal build script
+# Personal build scripts
 build-and-deploy.sh
+taskfile.yaml
