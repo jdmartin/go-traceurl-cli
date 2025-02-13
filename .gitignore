@@ -23,3 +23,4 @@ go.work
 # Personal build scripts
 build-and-deploy.sh
 taskfile.yaml
+Makefile
