@@ -93,10 +93,7 @@ func formatURL(url string) string {
 
 	lineStart := 0
 	for i := 0; i < len(url); i += outputWidth {
-		end := i + outputWidth
-		if end > len(url) {
-			end = len(url)
-		}
+		end := min(i+outputWidth, len(url))
 
 		if i > 0 {
 			// Insert additional indentation for the URL continuation
@@ -202,8 +199,8 @@ func extractParameters(inputURL string) string {
 	}
 
 	// Add path segments
-	pathSegments := strings.Split(parsedURL.Path, "/")
-	for _, segment := range pathSegments {
+	pathSegments := strings.SplitSeq(parsedURL.Path, "/")
+	for segment := range pathSegments {
 		if segment != "" && !strings.HasPrefix(segment, "#") {
 			// Check if the path already ends with a slash
 			if !strings.HasSuffix(additionalText, "/") {
