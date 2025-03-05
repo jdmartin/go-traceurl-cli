@@ -1,5 +1,5 @@
 module url-tracer
 
-go 1.24.0
+go 1.24.1
 
 require github.com/pelletier/go-toml/v2 v2.2.3
