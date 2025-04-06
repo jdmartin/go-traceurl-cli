@@ -19,24 +19,21 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
-const (
-	bold       = "\033[1m"
-	boldBlue   = "\033[1;34m"
-	brightCyan = "\033[38;5;14m"
-	green      = "\033[32m"
-	reset      = "\033[0m"
-	underline  = "\033[4m"
-)
-
 var (
+	boldBlue           = "\033[1;34m"
+	brightCyan         = "\033[38;5;14m"
 	client             = createHTTPClient()
-	outputWidth        = 120
+	green              = "\033[32m"
 	outputDividerWidth = 135
+	outputWidth        = 120
+	reset              = "\033[0m"
+	underline          = "\033[4m"
 )
 
 // Config struct to hold configuration values
 type Config struct {
 	UseJSON       bool `toml:"use_json"`
+	NoColor       bool `toml:"no_color"`
 	AlwaysTerse   bool `toml:"always_terse"`
 	AlwaysVerbose bool `toml:"always_verbose"`
 	Width         int  `toml:"width"`
@@ -153,6 +150,9 @@ func loadConfig() (*Config, error) {
 	}
 	if !config.AlwaysVerbose {
 		config.AlwaysVerbose = false // Set the default value
+	}
+	if !config.NoColor {
+		config.NoColor = false // Set the default value
 	}
 	if config.Width == 0 {
 		config.Width = 120 // Set the default value
@@ -278,7 +278,7 @@ func outputAsJSON(traceResult TraceResult) error {
 }
 
 func printUsageMessage() {
-	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-h: prints this help message\n\t-j: outputs as JSON\n\t-s: prints only the final/clean URL\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
+	fmt.Printf("\n%sUsage%s: go-trace [options] <URL>\n\n\t%sOptions%s:\n\t-h: prints this help message\n\t-j: outputs as JSON\n\t-s: prints only the final/clean URL\n\t-v: shows all hops\n\t-w: sets the width of the URL tab (line wraps here)\n\t--no-color: print the output without color\n\n\t%sDefaults%s:\n\t-j: Off\n\t-v: Off (Final/Clean URL only)\n\t-w: 120\n\n", underline, reset, underline, reset, underline, reset)
 }
 
 func printTraceResult(redirectURL string, hops []Hop, cloudflareStatus bool, viewOption string) {
@@ -539,6 +539,7 @@ func handleRelativeRedirect(previousURL *url.URL, location string, requestURL *u
 func main() {
 	// Parse command-line arguments
 	var (
+		flagColor      bool
 		flagHelp       bool
 		flagOutputJSON bool
 		flagTerse      bool
@@ -551,6 +552,7 @@ func main() {
 	flag.BoolVar(&flagOutputJSON, "j", false, "Output results as JSON")
 	flag.BoolVar(&flagTerse, "s", false, "Output only the final/clean url")
 	flag.BoolVar(&flagVerbose, "v", false, "Show verbose trace results")
+	flag.BoolVar(&flagColor, "no-color", false, "Show output without color")
 	flag.IntVar(&flagWidth, "w", 120, "Width of the URL tab")
 
 	// Load configuration from file, if exists
@@ -566,6 +568,7 @@ func main() {
 		flagTerse = config.AlwaysTerse
 		flagVerbose = config.AlwaysVerbose
 		flagWidth = config.Width
+		flagColor = config.NoColor
 	}
 
 	flag.Parse()
@@ -590,6 +593,15 @@ func main() {
 	if flagHelp {
 		printUsageMessage()
 		os.Exit(0)
+	}
+
+	// If no-color is set, redefine colors to ""
+	if flagColor || config.NoColor {
+		boldBlue = ""
+		brightCyan = ""
+		green = ""
+		reset = ""
+		underline = ""
 	}
 
 	// Perform the trace
